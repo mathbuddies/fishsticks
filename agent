@@ -1,1 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Cyber Tic-Tac-Toe</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0d0f17;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
 
+        /* Neon Glow Effects */
+        .glow-cyan {
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.7), 0 0 24px rgba(6, 182, 212, 0.4);
+        }
+        .glow-pink {
+            text-shadow: 0 0 12px rgba(236, 72, 153, 0.7), 0 0 24px rgba(236, 72, 153, 0.4);
+        }
+        .box-glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), inset 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+        .box-glow-pink {
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.3), inset 0 0 15px rgba(236, 72, 153, 0.2);
+        }
+
+        /* Grid Cell Animations */
+        .cell-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cell-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            background-color: rgba(30, 41, 59, 0.8);
+        }
+        .cell-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Win Line Styling */
+        .win-highlight {
+            animation: pulse-win 1s infinite alternate;
+        }
+        @keyframes pulse-win {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* Canvas Particle Effects */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative select-none">
+
+    <!-- Particle Overlay Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Game Container -->
+    <div class="w-full max-w-md bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center z-10">
+
+        <!-- Title Header -->
+        <h1 class="text-4xl font-extrabold tracking-wider mb-2 text-center bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            TIC TAC TOE
+        </h1>
+        <p class="text-xs text-slate-400 font-medium tracking-widest uppercase mb-6">Cyber Edition</p>
+
+        <!-- Mode Toggle & Controls -->
+        <div class="w-full flex items-center justify-between bg-slate-950/70 p-1.5 rounded-2xl mb-6 border border-slate-800/80">
+            <button id="mode-pvp" onclick="setMode('pvp')" class="flex-1 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 bg-slate-800 text-cyan-400 shadow">
+                <i class="fa-solid fa-users mr-1.5"></i> 2 Players
+            </button>
+            <button id="mode-ai" onclick="setMode('ai')" class="flex-1 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-robot mr-1.5"></i> vs AI
+            </button>
+        </div>
+
+        <!-- Score Board -->
+        <div class="w-full grid grid-cols-3 gap-3 mb-6 text-center">
+            <div class="bg-slate-950/50 border border-cyan-500/20 rounded-2xl p-3 flex flex-col items-center">
+                <span class="text-xs text-slate-400 font-semibold mb-1">PLAYER X</span>
+                <span id="score-x" class="text-2xl font-bold text-cyan-400 glow-cyan">0</span>
+            </div>
+            <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3 flex flex-col items-center justify-center">
+                <span class="text-xs text-slate-400 font-semibold mb-1">DRAWS</span>
+                <span id="score-ties" class="text-2xl font-bold text-slate-300">0</span>
+            </div>
+            <div class="bg-slate-950/50 border border-pink-500/20 rounded-2xl p-3 flex flex-col items-center">
+                <span id="label-o" class="text-xs text-slate-400 font-semibold mb-1">PLAYER O</span>
+                <span id="score-o" class="text-2xl font-bold text-pink-500 glow-pink">0</span>
+            </div>
+        </div>
+
+        <!-- Status Indicator -->
+        <div id="status-card" class="w-full text-center py-2.5 px-4 mb-6 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm font-semibold tracking-wide text-cyan-400 flex items-center justify-center gap-2">
+            <span>Turn:</span> <i class="fa-solid fa-xmark text-cyan-400 text-lg"></i>
+        </div>
+
+        <!-- Game Board (3x3 Grid) -->
+        <div class="grid grid-cols-3 gap-3 w-full aspect-square mb-6">
+            <button onclick="makeMove(0)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(1)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(2)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(3)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(4)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(5)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(6)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(7)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+            <button onclick="makeMove(8)" class="cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold"></button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="w-full flex gap-3">
+            <button onclick="resetBoard()" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-2xl shadow-lg transition-all duration-200 active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Restart Game
+            </button>
+            <button onclick="resetScores()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-2xl transition-all duration-200 active:scale-95" title="Reset Scores">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Game Logic Script -->
+    <script>
+        // State variables
+        let board = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X"; // X always starts
+        let gameActive = true;
+        let gameMode = "pvp"; // 'pvp' or 'ai'
+        let scores = { X: 0, O: 0, ties: 0 };
+
+        // Winning combinations
+        const winConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        const cells = document.querySelectorAll('.cell-btn');
+        const statusCard = document.getElementById('status-card');
+
+        // Set game mode (PvP or AI)
+        function setMode(mode) {
+            gameMode = mode;
+            document.getElementById('mode-pvp').className = mode === 'pvp' 
+                ? 'flex-1 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 bg-slate-800 text-cyan-400 shadow'
+                : 'flex-1 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 text-slate-400 hover:text-slate-200';
+            
+            document.getElementById('mode-ai').className = mode === 'ai' 
+                ? 'flex-1 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 bg-slate-800 text-pink-400 shadow'
+                : 'flex-1 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 text-slate-400 hover:text-slate-200';
+
+            document.getElementById('label-o').innerText = mode === 'ai' ? 'AI (O)' : 'PLAYER O';
+            resetBoard();
+        }
+
+        // Handle cell click / move
+        function makeMove(index) {
+            if (board[index] !== "" || !gameActive) return;
+
+            executeMove(index, currentPlayer);
+
+            if (checkResult()) return;
+
+            // Switch Player
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            updateStatus();
+
+            // AI Move Trigger
+            if (gameMode === "ai" && currentPlayer === "O" && gameActive) {
+                setTimeout(makeAIMove, 400);
+            }
+        }
+
+        function executeMove(index, player) {
+            board[index] = player;
+            const cell = cells[index];
+            if (player === "X") {
+                cell.innerHTML = '<i class="fa-solid fa-xmark text-cyan-400 glow-cyan"></i>';
+                cell.classList.add('box-glow-cyan');
+            } else {
+                cell.innerHTML = '<i class="fa-regular fa-circle text-pink-500 glow-pink"></i>';
+                cell.classList.add('box-glow-pink');
+            }
+        }
+
+        // Simple Smart AI Turn
+        function makeAIMove() {
+            if (!gameActive) return;
+
+            // 1. Check if AI can win
+            let bestMove = findWinningMove("O");
+            // 2. Block Player X from winning
+            if (bestMove === null) bestMove = findWinningMove("X");
+            // 3. Take Center if available
+            if (bestMove === null && board[4] === "") bestMove = 4;
+            // 4. Choose random empty cell
+            if (bestMove === null) {
+                let emptyIndices = board.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
+                if (emptyIndices.length > 0) {
+                    bestMove = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                }
+            }
+
+            if (bestMove !== null) {
+                executeMove(bestMove, "O");
+                if (checkResult()) return;
+                currentPlayer = "X";
+                updateStatus();
+            }
+        }
+
+        function findWinningMove(player) {
+            for (let condition of winConditions) {
+                const [a, b, c] = condition;
+                const values = [board[a], board[b], board[c]];
+                if (values.filter(v => v === player).length === 2 && values.filter(v => v === "").length === 1) {
+                    return condition[values.indexOf("")];
+                }
+            }
+            return null;
+        }
+
+        // Check for Win or Tie
+        function checkResult() {
+            let roundWon = false;
+            let winningCombo = null;
+
+            for (let condition of winConditions) {
+                const [a, b, c] = condition;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    roundWon = true;
+                    winningCombo = condition;
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                gameActive = false;
+                scores[currentPlayer]++;
+                updateScores();
+                
+                // Highlight winning line
+                winningCombo.forEach(idx => cells[idx].classList.add('win-highlight', 'bg-slate-800'));
+
+                statusCard.className = currentPlayer === "X" 
+                    ? "w-full text-center py-2.5 px-4 mb-6 rounded-xl bg-cyan-950/80 border border-cyan-500/50 text-sm font-bold text-cyan-400 glow-cyan"
+                    : "w-full text-center py-2.5 px-4 mb-6 rounded-xl bg-pink-950/80 border border-pink-500/50 text-sm font-bold text-pink-400 glow-pink";
+
+                statusCard.innerHTML = `PLAYER ${currentPlayer} WINS! 🎉`;
+                triggerConfetti();
+                return true;
+            }
+
+            if (!board.includes("")) {
+                gameActive = false;
+                scores.ties++;
+                updateScores();
+                statusCard.className = "w-full text-center py-2.5 px-4 mb-6 rounded-xl bg-slate-800 border border-slate-700 text-sm font-bold text-slate-300";
+                statusCard.innerHTML = "IT'S A DRAW! 🤝";
+                return true;
+            }
+
+            return false;
+        }
+
+        function updateStatus() {
+            if (currentPlayer === "X") {
+                statusCard.innerHTML = `Turn: <i class="fa-solid fa-xmark text-cyan-400 text-lg ml-1"></i>`;
+                statusCard.className = "w-full text-center py-2.5 px-4 mb-6 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm font-semibold tracking-wide text-cyan-400 flex items-center justify-center gap-1";
+            } else {
+                statusCard.innerHTML = `Turn: <i class="fa-regular fa-circle text-pink-500 text-lg ml-1"></i>`;
+                statusCard.className = "w-full text-center py-2.5 px-4 mb-6 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm font-semibold tracking-wide text-pink-400 flex items-center justify-center gap-1";
+            }
+        }
+
+        function updateScores() {
+            document.getElementById('score-x').innerText = scores.X;
+            document.getElementById('score-o').innerText = scores.O;
+            document.getElementById('score-ties').innerText = scores.ties;
+        }
+
+        function resetBoard() {
+            board = ["", "", "", "", "", "", "", "", ""];
+            currentPlayer = "X";
+            gameActive = true;
+            cells.forEach(cell => {
+                cell.innerHTML = "";
+                cell.className = "cell-btn bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-4xl font-extrabold";
+            });
+            updateStatus();
+        }
+
+        function resetScores() {
+            scores = { X: 0, O: 0, ties: 0 };
+            updateScores();
+            resetBoard();
+        }
+
+        // Victory Particle Canvas Logic
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function triggerConfetti() {
+            particles = [];
+            const colors = ['#06b6d4', '#ec4899', '#3b82f6', '#a855f7'];
+            for (let i = 0; i < 75; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    size: Math.random() * 6 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 100
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.15; // gravity
+                p.life -= 1.5;
+
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            if (particles.length > 0) {
+                requestAnimationFrame(animateConfetti);
+            }
+        }
+    </script>
+</body>
+</html>

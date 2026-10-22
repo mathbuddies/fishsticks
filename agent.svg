@@ -22,7 +22,6 @@
           font-weight: bold;
           cursor: pointer;
           user-select: none;
-          transition: background-color 0.2s;
         }
         .cell:hover {
           background-color: #334155;
@@ -43,9 +42,6 @@
           border: none;
           border-radius: 8px;
           cursor: pointer;
-        }
-        .restart-btn:hover {
-          background-color: #7dd3fc;
         }
       </style>
 
@@ -106,19 +102,19 @@
           }
 
           if (roundWon) {
-            statusText.textContent = `Player ${currentPlayer} Wins! 🎉`;
+            statusText.textContent = "Player " + currentPlayer + " Wins!";
             gameActive = false;
             return;
           }
 
           if (!board.includes("")) {
-            statusText.textContent = "It's a Draw! 🤝";
+            statusText.textContent = "It's a Draw!";
             gameActive = false;
             return;
           }
 
           currentPlayer = currentPlayer === "X" ? "O" : "X";
-          statusText.textContent = `Player ${currentPlayer}'s Turn`;
+          statusText.textContent = "Player " + currentPlayer + "'s Turn";
         }
 
         function resetGame() {
